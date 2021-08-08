@@ -31,10 +31,12 @@ contract Escrow is Ownable {
 
     mapping(address => AssetBalance) private escrowBalances;
     mapping(AssetType => address) private tokenAddresses;
+    uint256 private fee;
 
     constructor(address erc20, address erc721){
         tokenAddresses[AssetType.ERC20] = erc20;
         tokenAddresses[AssetType.ERC721] = erc721;
+        fee = 0.001 ether;
     }
 
     /** 
@@ -49,7 +51,8 @@ contract Escrow is Ownable {
         );
     }
 
-    function deposit(Asset[] memory assets, address recipient) external {
+    function deposit(Asset[] memory assets, address recipient) payable external {
+        require(msg.value == fee.mul(assets.length), "insufficient payment to perform transaction");
         for (uint i = 0; i < assets.length; i++){
             Asset memory asset = assets[i];
             require(asset.assetType == AssetType.ERC20 || asset.assetType == AssetType.ERC721, "Incorrect asset type");
@@ -65,6 +68,8 @@ contract Escrow is Ownable {
                 IERC721(tokenAddresses[AssetType.ERC721]).transferFrom(msg.sender, address(this), asset.tokenId);
             }
         }
+
+        payable(owner()).transfer(msg.value);
     }
 
     function withdraw() external{
