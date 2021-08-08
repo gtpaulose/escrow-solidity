@@ -5,11 +5,14 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 
-contract Escrow is Ownable {
+contract Escrow is Ownable, ERC721 {
     using EnumerableSet for EnumerableSet.UintSet;
     using SafeMath for uint256;
+    using Counters for Counters.Counter;
 
     enum AssetType {ERC20,ERC721}
 
@@ -28,16 +31,21 @@ contract Escrow is Ownable {
         uint256 erc20;
         uint256 erc721;
         Asset[] assets;
+
+        uint256 claimTokenID;
     }
+
+    Counters.Counter private _claimtokenIds;
 
     mapping(address => AssetBalance) private escrowBalances;
     mapping(AssetType => address) private tokenAddresses;
+    
     uint256 private fee;
     // maximum number of withdrawable escrow payments for an address
     // this prevents large loops and unexpected state modification
     uint16 private max;
 
-    constructor(address erc20, address erc721){
+    constructor(address erc20, address erc721) ERC721("Claim Token", "CTKN"){
         tokenAddresses[AssetType.ERC20] = erc20;
         tokenAddresses[AssetType.ERC721] = erc721;
         fee = 0.001 ether;
@@ -48,7 +56,7 @@ contract Escrow is Ownable {
     * @dev gets the amount of locked token in escrow for a given account
      *
      */
-    function balanceOf(address account) public view returns (uint256, uint256) {
+    function escrowBalance(address account) public view returns (uint256, uint256) {
         require((msg.sender == owner()) || (msg.sender == account), "not authorized");
         return (
             escrowBalances[account].erc20,
@@ -73,6 +81,11 @@ contract Escrow is Ownable {
                 escrowBalances[asset.recipient].assets.push(asset);
 
                 IERC721(tokenAddresses[AssetType.ERC721]).transferFrom(msg.sender, address(this), asset.tokenId);
+            }
+
+            if (escrowBalances[asset.recipient].claimTokenID == 0){
+                uint256 _claimTokenID = _mint(asset.recipient);
+                escrowBalances[asset.recipient].claimTokenID = _claimTokenID;
             }
         }
 
@@ -103,7 +116,19 @@ contract Escrow is Ownable {
         }
 
         require(withdrawn, "nothing to withdraw");
-        escrowBalances[msg.sender]=escrowBalances[msg.sender];
+        _burn(escrowBalances[msg.sender].claimTokenID);
     }
 
+    function _burn(uint256 _claimtokenId) internal override {
+        escrowBalances[msg.sender].claimTokenID = 0;
+        super._burn(_claimtokenId);
+    }
+
+
+     function _mint(address recipient) internal returns (uint256)
+    { 
+        _claimtokenIds.increment();
+        _mint(recipient, _claimtokenIds.current());
+        return _claimtokenIds.current();
+    }
 }
