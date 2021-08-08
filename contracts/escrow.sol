@@ -15,6 +15,8 @@ contract Escrow is Ownable {
 
     struct Asset {
         AssetType assetType;
+
+        address recipient;
        
         uint256 tokenId;
         uint256 amount;
@@ -32,11 +34,15 @@ contract Escrow is Ownable {
     mapping(address => AssetBalance) private escrowBalances;
     mapping(AssetType => address) private tokenAddresses;
     uint256 private fee;
+    // maximum number of withdrawable escrow payments for an address
+    // this prevents large loops and unexpected state modification
+    uint16 private max;
 
     constructor(address erc20, address erc721){
         tokenAddresses[AssetType.ERC20] = erc20;
         tokenAddresses[AssetType.ERC721] = erc721;
         fee = 0.001 ether;
+        max = 10;
     }
 
     /** 
@@ -51,19 +57,21 @@ contract Escrow is Ownable {
         );
     }
 
-    function deposit(Asset[] memory assets, address recipient) payable external {
+    function deposit(Asset[] memory assets) payable external {
         require(msg.value == fee.mul(assets.length), "insufficient payment to perform transaction");
         for (uint i = 0; i < assets.length; i++){
             Asset memory asset = assets[i];
             require(asset.assetType == AssetType.ERC20 || asset.assetType == AssetType.ERC721, "Incorrect asset type");
+            require(escrowBalances[asset.recipient].assets.length < max, "too many unwithdrawn assets for recipient");
+            
             if (asset.assetType == AssetType.ERC20){
-                escrowBalances[recipient].erc20 = escrowBalances[recipient].erc20.add(asset.amount);
-                escrowBalances[recipient].assets.push(asset);
+                escrowBalances[asset.recipient].erc20 = escrowBalances[asset.recipient].erc20.add(asset.amount);
+                escrowBalances[asset.recipient].assets.push(asset);
 
                 require(IERC20(tokenAddresses[AssetType.ERC20]).transferFrom(msg.sender, address(this), asset.amount), "token transfer failed");
             } else{
-                escrowBalances[recipient].erc721 = escrowBalances[recipient].erc721.add(1);
-                escrowBalances[recipient].assets.push(asset);
+                escrowBalances[asset.recipient].erc721 = escrowBalances[asset.recipient].erc721.add(1);
+                escrowBalances[asset.recipient].assets.push(asset);
 
                 IERC721(tokenAddresses[AssetType.ERC721]).transferFrom(msg.sender, address(this), asset.tokenId);
             }
