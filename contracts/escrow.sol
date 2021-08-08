@@ -30,7 +30,6 @@ contract Escrow is Ownable {
         Asset[] assets;
     }
 
-
     mapping(address => AssetBalance) private escrowBalances;
     mapping(AssetType => address) private tokenAddresses;
     uint256 private fee;
@@ -52,7 +51,7 @@ contract Escrow is Ownable {
     function balanceOf(address account) public view returns (uint256, uint256) {
         require((msg.sender == owner()) || (msg.sender == account), "not authorized");
         return (
-            escrowBalances[account].erc20, 
+            escrowBalances[account].erc20,
             escrowBalances[account].erc721
         );
     }
@@ -83,9 +82,9 @@ contract Escrow is Ownable {
     function withdraw() external{
         require(escrowBalances[msg.sender].erc20 > 0 || escrowBalances[msg.sender].erc721 > 0, "nothing to withdraw");
         bool withdrawn = false;
-        for (uint i = 0; i < escrowBalances[msg.sender].assets.length; i++){
-            Asset memory asset = escrowBalances[msg.sender].assets[i];
-            if (asset.endTime == 0 || asset.endTime > block.timestamp){
+        for (int i = 0; i < int(escrowBalances[msg.sender].assets.length); i++){
+            Asset memory asset = escrowBalances[msg.sender].assets[uint(i)];
+            if (asset.endTime == 0 || asset.endTime < block.timestamp){
                 withdrawn = true;
                 if (asset.assetType == AssetType.ERC20){
                     escrowBalances[msg.sender].erc20 = 0;
@@ -94,13 +93,17 @@ contract Escrow is Ownable {
                     escrowBalances[msg.sender].erc721 = escrowBalances[msg.sender].erc721.sub(1);
                     IERC721(tokenAddresses[AssetType.ERC721]).transferFrom(address(this), msg.sender, asset.tokenId);
                 }
-                delete escrowBalances[msg.sender].assets[i];
+                uint l = escrowBalances[msg.sender].assets.length;
+                if (l - 1 > 0){
+                    escrowBalances[msg.sender].assets[uint(i)] = escrowBalances[msg.sender].assets[l - 1];
+                    i--;
+                }
+                escrowBalances[msg.sender].assets.pop();
             }
         }
 
         require(withdrawn, "nothing to withdraw");
         escrowBalances[msg.sender]=escrowBalances[msg.sender];
     }
-
 
 }
