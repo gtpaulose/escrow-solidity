@@ -24,7 +24,7 @@ Eg,
 
 The above deposit request, interacts with 2 different token contracts (ERC20 - `0xF008880ba4eB87d79Dd4688511ebBc25cf69DB06` and ERC721 - `0x2000b8F5CbEE128054B432EFbd3E431b0136D5e6`) and will deposit assets to two recipients: 
 
-1. `0xE107F3488C7699938A583983d34668805F9F2C02` - 14 ERC20 tokens which can be claimed on 22/08/2022 and ERC721 token corresponding to tokenID `57` which can be claimed instantly
+1. `0xE107F3488C7699938A583983d34668805F9F2C02` - 14 ERC20 tokens which can be claimed on 22/08/2022 and ERC721 token corresponding to `tokenID=56` which can be claimed instantly
 2.  `0xF008880ba4eB87d79Dd4688511ebBc25cf69DB06` - 5 ERC20 tokens which can be claimed instantly
 
 The total fees incurred by the depositor will be no. of indivual requests multipled by the fixed fee, i.e `3 * 0.001 = 0.003 ether`
