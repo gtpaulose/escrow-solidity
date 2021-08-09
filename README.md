@@ -36,11 +36,11 @@ Recipients can withdraw assets from the escrow. The function will only execute i
 ### Claim Token
 Whenever a deposit is made to the escrow contract, a claim token is minted and transferred to the recipient. This serves to increase the security of the withdrawal workflow. Only one claim token is issued per recipient per assets in claim list, i.e if a recipient has no assets to claim, then when the first deposit request is processed they will receive a claim token. If the user doesn't or is unable to claim the asset and a user deposits additional assets for the recipient to claim, the contract will not issue another claim token. 
 
-The existing claim token is enough to withdraw all assets in the list. If ever the list becomes 0, the claim token is burnt. This saves gas fees instead of issuing claim tokens for every deposit. If the user does not have a claim token at the time of withdrawal, the contract throws an error.
+The existing claim token is enough to withdraw all assets in the list. If ever the list becomes empty, the claim token is burnt. This saves gas fees instead of issuing claim tokens for every deposit. If the user does not have a claim token at the time of withdrawal, the contract throws an error.
 
 ### Admin and Misc Functions
 Admins can set new values for fees and max unclaimed asset limit. 
-As added security, only admins and recipients can view their current escrow balance and claim token details. 
+As added security, only admins and recipients can view an address' current escrow balance and claim token details. 
 
 ## Commands
 
