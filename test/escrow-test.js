@@ -26,6 +26,10 @@ function buildInvalidPayloadERC20(recipient, amount, endTime){
     return [2, tokenERC20.address, recipient, 0, amount, endTime]
 }
 
+function buildInvalidAddressPayloadERC20(recipient, amount, endTime){
+    return [0, tokenERC721.address, recipient, 0, amount, endTime]
+}
+
 async function mintSampleERC20Tokens(owner, amount){
     await tokenERC20.connect(owner).mint(amount)
     await tokenERC20.connect(owner).approve(escrow.address, amount)
@@ -73,10 +77,14 @@ async function sleep(ms) {
 describe("Escrow Deployment", async() => {
     before('', async() => {
         await initTestVariables();
-    })
-    it("Should verify that the escrow contract is deployed", async() => {
         await createContract();
+    })
+    it("Should verify that the escrow contract is deployed", async() => {  
         expect(escrow.address).to.not.equal('0x' + '0'.repeat(32));
+    });
+    it("Should verify that the sample token contracts are deployed", async() => {  
+        expect(tokenERC20.address).to.not.equal('0x' + '0'.repeat(32));
+        expect(tokenERC721.address).to.not.equal('0x' + '0'.repeat(32));
     });
 });
 
@@ -117,6 +125,12 @@ describe("Escrow Deposit", async() => {
         }
 
        await expect(escrow.connect(account1).deposit(payload, { value: caluclateFee(11), gasPrice: 0 })).to.be.revertedWith(revertMessage('too many unclaimed assets for recipient'));
+    });
+    it("Should throw an error when passing an invalid token address", async() => {
+        await expect(escrow.connect(account1).deposit([buildInvalidAddressPayloadERC20(account2Addr, 1, 0)], { value: caluclateFee(1), gasPrice: 0 })).to.be.revertedWith(revertMessage('function returned an unexpected amount of data'));
+        payload = buildInvalidAddressPayloadERC20(account2Addr, 1, 0)
+        payload[1] = account3Addr
+        await expect(escrow.connect(account1).deposit([payload], { value: caluclateFee(1), gasPrice: 0 })).to.be.revertedWith(revertMessage('function call to a non-contract account'));
     });
     it("Should be successful when passing valid erc20 argument and fee", async() => {
         const ethBalanceBefore = await account1.getBalance();
