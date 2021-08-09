@@ -163,7 +163,7 @@ contract Escrow is Ownable, ERC721 {
      * if an asset is claimed, it is popped from the assets array
      * if all assets are claimed, claim token is burnt
      */
-    function withdraw() external{
+    function withdraw() external {  
         require(escrowBalances[msg.sender].erc20 > 0 || escrowBalances[msg.sender].erc721 > 0, "nothing to withdraw");
         bool withdrawn = false;
         for (int i = 0; i < int(escrowBalances[msg.sender].assets.length); i++){

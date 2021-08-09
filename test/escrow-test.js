@@ -32,6 +32,7 @@ function buildInvalidAddressPayloadERC20(recipient, amount, endTime){
 
 async function mintSampleERC20Tokens(owner, amount){
     await tokenERC20.connect(owner).mint(amount)
+    // allow escrow contract to transfer erc20 token on depositors behalf to the contract's address
     await tokenERC20.connect(owner).approve(escrow.address, amount)
 }
 
@@ -40,6 +41,7 @@ async function mintSampleERC721Tokens(owner, amount){
         await tokenERC721.connect(owner).mint()
     }
 
+    // allow escrow contract to transfer erc721 token on depositors behalf to the contract's address
     await tokenERC721.connect(owner).setApprovalForAll(escrow.address, true)
 }
 

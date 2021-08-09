@@ -4,6 +4,7 @@
   "description": "A simple escrow and corresponding token contract written in Solidity",
   "main": "index.js",
   "scripts": {
+    "compile": "hardhat compile",
     "test": "hardhat test"
   },
   "repository": {
