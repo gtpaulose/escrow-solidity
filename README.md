@@ -5,6 +5,8 @@ An escrow contract written in solidity which allows users to deposit any ERC20 a
 To enable thorough testing, sample ERC20 and ERC721 contracts have been included in the contract folder.
 ## Overview
 
+The only prerequisite to use the escrow contract is that the token should be transferrable on behalf of the depositor. This can done be by using the `approve()` function present in all ERC20 contracts and the `approveForAll()` function present in all ERC721 contracts. By doing so, will add the escrow contract as an approver, so it can transfer the specified tokens from depositor's address to the escrows contract's address.
+
 ### Deposit
 This function can be used by any user to deposit assets to the escrow. The depositor must specify the asset type _(0 for ERC20 tokens and 1 for ERC721 tokens)_, the corresponding token contract address _(this will allow the escrow contract to interface with token contract)_ and recipient address. When depositing ERC20 tokens, the user can specify the amount of tokens to deposit and for ERC721 tokens, the user can specify the tokenID to deposit. Finally, the user can also specify the end time for withdrawal. This is a unix timestamp that specifies the time post which the recipient can claim the corresponding asset. 
 
