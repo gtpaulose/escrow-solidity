@@ -1,5 +1,4 @@
 const { expect } = require("chai");
-const { BigNumber } = require("ethers");
 const { revertMessage, deployContracts } = require("../scripts/utils.js");
 
 const hre = require("hardhat");
