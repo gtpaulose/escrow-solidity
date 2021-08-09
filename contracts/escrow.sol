@@ -132,6 +132,7 @@ contract Escrow is Ownable, ERC721 {
         for (uint i = 0; i < assets.length; i++){
             Asset memory asset = assets[i];
             require(escrowBalances[asset.recipient].assets.length < _max, "too many unclaimed assets for recipient");
+            require(asset.amount != 0 || asset.tokenId != 0, "need to supply either amount or tokenId");
             
             if (asset.assetType == AssetType.ERC20){
                 escrowBalances[asset.recipient].erc20 = escrowBalances[asset.recipient].erc20.add(asset.amount);

@@ -134,6 +134,13 @@ describe("Escrow Deposit", async() => {
         payload[1] = account3Addr
         await expect(escrow.connect(account1).deposit([payload], { value: caluclateFee(1), gasPrice: 0 })).to.be.revertedWith(revertMessage('function call to a non-contract account'));
     });
+    it("Should throw an error if tokenID and amount are 0", async() => {
+        payload = buildPayloadERC20(account2Addr, 0, 0)
+        await expect(escrow.connect(account1).deposit([payload], { value: caluclateFee(1), gasPrice: 0 })).to.be.revertedWith(revertMessage('need to supply either amount or tokenId'));
+        
+        payload = buildPayloadERC721(account2Addr, 0, 0)
+        await expect(escrow.connect(account1).deposit([payload], { value: caluclateFee(1), gasPrice: 0 })).to.be.revertedWith(revertMessage('need to supply either amount or tokenId'));
+    });
     it("Should be successful when passing valid erc20 argument and fee", async() => {
         const ethBalanceBefore = await account1.getBalance();
         const tokenBalanceBefore = await tokenERC20.connect(account1).balanceOf(account1Addr);
