@@ -61,21 +61,6 @@ async function createContract() {
     tokenERC721 = contracts.tokenERC721;
 }
 
-async function getBlockTimestamp(blockNum) {
-    const block = await ethers.provider.getBlock(blockNum)
-    return block.timestamp
-}
-
-async function getLatestBlockNumber() {
-    const num = await ethers.provider.getBlockNumber()
-    return num
-}
-
-async function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-
 describe("Escrow Deployment", async () => {
     before('', async () => {
         await initTestVariables();
