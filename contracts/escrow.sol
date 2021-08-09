@@ -14,19 +14,30 @@ contract Escrow is Ownable, ERC721 {
     using SafeMath for uint256;
     using Counters for Counters.Counter;
 
+    // allowable AssetTypes that can be deposited in the escrow
     enum AssetType {ERC20,ERC721}
 
+    // Asset represents an escrow deposit request 
+    // An array of the following structure can be passed to the deposit function
+    // The same structure will be used transfer the necessary tokens to the recipient
     struct Asset {
+        // AssetType corresponding to the Asset
         AssetType assetType;
 
+        // recipient of the asset
         address recipient;
        
+       // in case of ERC721, associated tokenID
         uint256 tokenId;
+        // in case of ERC20, associated amount
         uint256 amount;
        
+       // endTime corresponds to the timestamp after which the user can withdraw the asset from escrow
+       // to set no endTime, simply pass 0
         uint256 endTime;
     }
 
+    // Consolidated view of a recipients escrow balance
     struct AssetBalance{
         uint256 erc20;
         uint256 erc721;
@@ -40,6 +51,7 @@ contract Escrow is Ownable, ERC721 {
     mapping(address => AssetBalance) private escrowBalances;
     mapping(AssetType => address) private tokenAddresses;
     
+    // fee taken for every escrow deposit
     uint256 private _fee;
     // maximum number of withdrawable escrow payments for an address
     // this prevents large loops and unexpected state modification
@@ -53,7 +65,7 @@ contract Escrow is Ownable, ERC721 {
     }
 
     /** 
-    * @dev Check the caller has created the order referenced with the given orderId
+     * @dev Check if the caller is either the admin or the owner of the account
      *
      */
     modifier eitherAdminOrOwner(address account) {
@@ -62,11 +74,10 @@ contract Escrow is Ownable, ERC721 {
     }
 
     /** 
-    * @dev gets the amount of locked token in escrow for a given account
+     * @dev gets the amount of locked token in escrow for a given account
      *
      */
     function escrowBalance(address account) public view eitherAdminOrOwner(account) returns (uint256, uint256, uint256) {
-        require((msg.sender == owner()) || (msg.sender == account), "not authorized");
         return (
             escrowBalances[account].erc20,
             escrowBalances[account].erc721,
@@ -75,7 +86,7 @@ contract Escrow is Ownable, ERC721 {
     }
 
     /** 
-    * @dev returns the assets left to be claimed for an address along with the claim tokenID
+     * @dev returns the assets left to be claimed for an address along with the claim tokenID
      *
      */
     function getClaimDetails(address account) public view eitherAdminOrOwner(account) returns (uint256, uint256) {
@@ -85,14 +96,37 @@ contract Escrow is Ownable, ERC721 {
         );
     }
 
+    /** 
+     * @dev returns the balance of the claim token for an account
+     *
+     */
+    function balanceOfClaimToken(address account) public view eitherAdminOrOwner(account) returns (uint256){
+        return balanceOf(account);
+    }
+
+    /** 
+     * @dev updates maximum assets that can be unclaimed by the user. Updating this may lead to large gas fees
+     *
+     */
     function updateMaxAssets(uint16 max) public onlyOwner {
         _max=max;
     }
 
+    /** 
+     * @dev updates the fee taken by the escrow admin for each deposit
+     *
+     */
     function updateFee(uint256 fee) public onlyOwner {
         _fee=fee;
     }
 
+    /** 
+     * @dev deposit will add assets to be claimed by the corresponding recipients to the state
+     * each deposit incurs a fee calculated by (num_of_deposits * _fee)
+     * the function will prevent insertion greater than _max
+     * assets are transfered to the contract address
+     * if the recipient doesn't have a claim token, they are issued one. this will be used to withdraw the assets in escrow
+     */
     function deposit(Asset[] memory assets) payable external {
         require(msg.value == _fee.mul(assets.length), "incorrect payment to perform transaction");
         for (uint i = 0; i < assets.length; i++){
@@ -111,6 +145,7 @@ contract Escrow is Ownable, ERC721 {
                 IERC721(tokenAddresses[AssetType.ERC721]).transferFrom(msg.sender, address(this), asset.tokenId);
             }
 
+            // mint if doesn't exist
             if (escrowBalances[asset.recipient].claimTokenID == 0){
                 uint256 _claimTokenID = _mint(asset.recipient);
                 escrowBalances[asset.recipient].claimTokenID = _claimTokenID;
@@ -120,6 +155,14 @@ contract Escrow is Ownable, ERC721 {
         payable(owner()).transfer(msg.value);
     }
 
+    /** 
+     * @dev withdraw will allow recipients to withdraw assets
+     * to save on gas fees, the function will return an error if no assets can be withdrawn
+     * recipients can only withdraw assets if they have associated asset balances and if the endTime has elapsed
+     * existence of the claim token is also checked
+     * if an asset is claimed, it is popped from the assets array
+     * if all assets are claimed, claim token is burnt
+     */
     function withdraw() external{
         require(escrowBalances[msg.sender].erc20 > 0 || escrowBalances[msg.sender].erc721 > 0, "nothing to withdraw");
         bool withdrawn = false;
@@ -127,6 +170,7 @@ contract Escrow is Ownable, ERC721 {
             Asset memory asset = escrowBalances[msg.sender].assets[uint(i)];
             if (asset.endTime < block.timestamp){
                 withdrawn = true;
+                
                 if (asset.assetType == AssetType.ERC20){
                     escrowBalances[msg.sender].erc20 = 0;
                     require(IERC20(tokenAddresses[AssetType.ERC20]).transfer(msg.sender, asset.amount), "token transfer failed");
@@ -134,21 +178,25 @@ contract Escrow is Ownable, ERC721 {
                     escrowBalances[msg.sender].erc721 = escrowBalances[msg.sender].erc721.sub(1);
                     IERC721(tokenAddresses[AssetType.ERC721]).transferFrom(address(this), msg.sender, asset.tokenId);
                 }
+                
+                // swap and pop from the array.
+                // decrement loop variable since length of array decreases.
                 uint l = escrowBalances[msg.sender].assets.length;
-                if (l - 1 > 0){
-                    escrowBalances[msg.sender].assets[uint(i)] = escrowBalances[msg.sender].assets[l - 1];
-                    i--;
-                }
+                escrowBalances[msg.sender].assets[uint(i)] = escrowBalances[msg.sender].assets[l - 1];
+                i--;
                 escrowBalances[msg.sender].assets.pop();
             }
         }
 
         require(withdrawn, "nothing to withdraw");
-        _burn(escrowBalances[msg.sender].claimTokenID);
+        _checkAndburn(escrowBalances[msg.sender].claimTokenID);
     }
 
-    function _burn(uint256 _claimtokenId) internal override {
-        require(balanceOf(msg.sender) == 1, "no claim token");
+    /** 
+     * @dev _checkAndburn will check for the existence of the token and burn the token if all assets are withdrawn
+     */
+    function _checkAndburn(uint256 _claimtokenId) internal {
+        require(balanceOfClaimToken(msg.sender) == 1, "no claim token");
         if (escrowBalances[msg.sender].assets.length == 0){
             escrowBalances[msg.sender].claimTokenID = 0;
             super._burn(_claimtokenId);
@@ -156,6 +204,9 @@ contract Escrow is Ownable, ERC721 {
     }
 
 
+    /** 
+     * @dev _mint will mint the claim token
+     */
      function _mint(address recipient) internal returns (uint256)
     { 
         _claimtokenIds.increment();

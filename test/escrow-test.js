@@ -121,13 +121,13 @@ describe("Escrow Deposit", async() => {
     it("Should be successful when passing valid erc20 argument and fee", async() => {
         const ethBalanceBefore = await account1.getBalance();
         const tokenBalanceBefore = await tokenERC20.connect(account1).balanceOf(account1Addr);
-        const claimTokenBalanceBefore = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceBefore = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         
         await escrow.connect(account1).deposit([buildPayloadERC20(account2Addr, 1, 0)], { value: caluclateFee(1), gasPrice: 0 });
         
         const ethBalanceAfter = await account1.getBalance();
         const tokenBalanceAfter = await tokenERC20.connect(account1).balanceOf(account1Addr);
-        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
        
         expect(ethBalanceAfter.eq(ethBalanceBefore.sub(caluclateFee(1)))).to.be.true;
         expect(tokenBalanceAfter.eq(tokenBalanceBefore.sub(1))).to.be.true;
@@ -144,8 +144,8 @@ describe("Escrow Deposit", async() => {
     it("Should be successful when passing multiple erc20 arguments and corresponding fees", async() => {
         const ethBalanceBefore = await account1.getBalance();
         const tokenBalanceBefore = await tokenERC20.connect(account1).balanceOf(account1Addr);
-        const claimTokenBalanceBefore2 = await escrow.connect(account2).balanceOf(account2Addr);
-        const claimTokenBalanceBefore3 = await escrow.connect(account3).balanceOf(account3Addr);
+        const claimTokenBalanceBefore2 = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
+        const claimTokenBalanceBefore3 = await escrow.connect(account3).balanceOfClaimToken(account3Addr);
         
         await escrow.connect(account1).deposit([
             buildPayloadERC20(account2Addr, 2, 0),
@@ -155,8 +155,8 @@ describe("Escrow Deposit", async() => {
         
         const ethBalanceAfter = await account1.getBalance();
         const tokenBalanceAfter = await tokenERC20.connect(account1).balanceOf(account1Addr);
-        const claimTokenBalanceAfter2 = await escrow.connect(account2).balanceOf(account2Addr);
-        const claimTokenBalanceAfter3 = await escrow.connect(account3).balanceOf(account3Addr);
+        const claimTokenBalanceAfter2 = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
+        const claimTokenBalanceAfter3 = await escrow.connect(account3).balanceOfClaimToken(account3Addr);
 
         expect(ethBalanceAfter.eq(ethBalanceBefore.sub(caluclateFee(3)))).to.be.true;
         expect(tokenBalanceAfter.eq(tokenBalanceBefore.sub(5))).to.be.true;
@@ -181,13 +181,13 @@ describe("Escrow Deposit", async() => {
     it("Should be successful when passing valid erc721 argument and fee", async() => {
         const ethBalanceBefore = await account1.getBalance();
         const tokenBalanceBefore = await tokenERC721.connect(account1).balanceOf(account1Addr);
-        const claimTokenBalanceBefore = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceBefore = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         
         await escrow.connect(account1).deposit([buildPayloadERC721(account2Addr, 1, 0)], { value: caluclateFee(1), gasPrice: 0 });
         
         const ethBalanceAfter = await account1.getBalance();
         const tokenBalanceAfter = await tokenERC721.connect(account1).balanceOf(account1Addr);
-        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
        
         expect(ethBalanceAfter.eq(ethBalanceBefore.sub(caluclateFee(1)))).to.be.true;
         expect(tokenBalanceAfter.eq(tokenBalanceBefore.sub(1))).to.be.true;
@@ -213,8 +213,8 @@ describe("Escrow Deposit", async() => {
         const ethBalanceAfter = await account1.getBalance();
         const token20BalanceAfter = await tokenERC20.connect(account1).balanceOf(account1Addr);
         const token721BalanceAfter = await tokenERC721.connect(account1).balanceOf(account1Addr);
-        const claimTokenBalanceAfter2 = await escrow.connect(account2).balanceOf(account2Addr);
-        const claimTokenBalanceAfter3 = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceAfter2 = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
+        const claimTokenBalanceAfter3 = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
        
         expect(ethBalanceAfter.eq(ethBalanceBefore.sub(caluclateFee(2)))).to.be.true;
         expect(token20BalanceAfter.eq(token20BalanceBefore.sub(1))).to.be.true;
@@ -278,7 +278,7 @@ describe("Escrow Withdrawal", async() => {
 
        await escrow.connect(account2).withdraw();
 
-        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         const token20BalanceAfter = await tokenERC20.connect(account2).balanceOf(account2Addr);
         const token721BalanceAfter = await tokenERC721.connect(account2).balanceOf(account2Addr);
         
@@ -315,7 +315,7 @@ describe("Escrow Withdrawal", async() => {
         await ethers.provider.send('evm_setNextBlockTimestamp', [Math.round(timestamp.now('+120s'))]); 
         await escrow.connect(account2).withdraw()
 
-        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         const token20BalanceAfter = await tokenERC20.connect(account2).balanceOf(account2Addr);
 
         expect(token20BalanceAfter.eq(token20BalanceBefore.add(1))).to.be.true;
@@ -330,7 +330,7 @@ describe("Escrow Withdrawal", async() => {
     it("Should allow burn claim token once all assets have been withdrawn", async() => {
         const token20BalanceBefore = await tokenERC20.connect(account2).balanceOf(account2Addr);
         const token721BalanceBefore = await tokenERC721.connect(account2).balanceOf(account2Addr);
-        const claimTokenBalanceBefore = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceBefore = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         expect(claimTokenBalanceBefore).to.equal(0);
        
         const time = Math.round(timestamp.now('+180s'))
@@ -341,7 +341,7 @@ describe("Escrow Withdrawal", async() => {
         
         await escrow.connect(account2).withdraw();
         
-        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         const token20BalanceAfter = await tokenERC20.connect(account2).balanceOf(account2Addr);
 
         expect(token20BalanceAfter.eq(token20BalanceBefore.add(1))).to.be.true;
@@ -356,21 +356,21 @@ describe("Escrow Withdrawal", async() => {
         await ethers.provider.send('evm_setNextBlockTimestamp', [Math.round(timestamp.now('+200s'))]);
         await escrow.connect(account2).withdraw();
 
-        const claimTokenBalanceFinal = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceFinal = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         const token721BalanceAfter = await tokenERC721.connect(account2).balanceOf(account2Addr);
 
         expect(token721BalanceAfter.eq(token721BalanceBefore.add(1))).to.be.true;
         expect(claimTokenBalanceFinal).to.equal(0);
     });
     it("Should prevent withdrawal in case of missing claim token", async() => {
-        const claimTokenBalanceBefore = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceBefore = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         expect(claimTokenBalanceBefore).to.equal(0)
 
         await escrow.connect(account1).deposit([
             buildPayloadERC20(account2Addr, 1, 0)
         ], { value: caluclateFee(1), gasPrice: 0 });
 
-        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOf(account2Addr);
+        const claimTokenBalanceAfter = await escrow.connect(account2).balanceOfClaimToken(account2Addr);
         expect(claimTokenBalanceAfter).to.equal(1)
 
         details = await escrow.connect(account2).getClaimDetails(account2Addr);
