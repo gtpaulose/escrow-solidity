@@ -146,7 +146,7 @@ contract Escrow is Ownable, ERC721 {
                 IERC721(asset.token).transferFrom(msg.sender, address(this), asset.tokenId);
             }
 
-            // mint if doesn't exist
+            // mint claim token if doesn't exist
             if (escrowBalances[asset.recipient].claimTokenID == 0){
                 uint256 _claimTokenID = _mint(asset.recipient);
                 escrowBalances[asset.recipient].claimTokenID = _claimTokenID;
