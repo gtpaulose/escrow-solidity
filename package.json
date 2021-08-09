@@ -19,7 +19,9 @@
   "dependencies": {
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^4.2.0",
-    "hardhat": "^2.5.0"
+    "chai": "^4.3.4",
+    "hardhat": "^2.5.0",
+    "unix-timestamp": "^0.2.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",

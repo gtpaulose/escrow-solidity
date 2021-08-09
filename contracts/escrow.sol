@@ -53,10 +53,19 @@ contract Escrow is Ownable, ERC721 {
     }
 
     /** 
+    * @dev Check the caller has created the order referenced with the given orderId
+     *
+     */
+    modifier eitherAdminOrOwner(address account) {
+        require((msg.sender == owner()) || (msg.sender == account), "not authorized");
+        _;
+    }
+
+    /** 
     * @dev gets the amount of locked token in escrow for a given account
      *
      */
-    function escrowBalance(address account) public view returns (uint256, uint256) {
+    function escrowBalance(address account) public view eitherAdminOrOwner(account) returns (uint256, uint256) {
         require((msg.sender == owner()) || (msg.sender == account), "not authorized");
         return (
             escrowBalances[account].erc20,
@@ -64,11 +73,20 @@ contract Escrow is Ownable, ERC721 {
         );
     }
 
+    /** 
+    * @dev gets the claim tokenID for an account
+     *
+     */
+    function getClaimTokenID(address account) public view eitherAdminOrOwner(account) returns (uint256) {
+        return (
+            escrowBalances[account].claimTokenID
+        );
+    }
+
     function deposit(Asset[] memory assets) payable external {
         require(msg.value == fee.mul(assets.length), "insufficient payment to perform transaction");
         for (uint i = 0; i < assets.length; i++){
             Asset memory asset = assets[i];
-            require(asset.assetType == AssetType.ERC20 || asset.assetType == AssetType.ERC721, "Incorrect asset type");
             require(escrowBalances[asset.recipient].assets.length < max, "too many unwithdrawn assets for recipient");
             
             if (asset.assetType == AssetType.ERC20){
@@ -97,7 +115,7 @@ contract Escrow is Ownable, ERC721 {
         bool withdrawn = false;
         for (int i = 0; i < int(escrowBalances[msg.sender].assets.length); i++){
             Asset memory asset = escrowBalances[msg.sender].assets[uint(i)];
-            if (asset.endTime == 0 || asset.endTime < block.timestamp){
+            if (asset.endTime < block.timestamp){
                 withdrawn = true;
                 if (asset.assetType == AssetType.ERC20){
                     escrowBalances[msg.sender].erc20 = 0;
@@ -120,8 +138,11 @@ contract Escrow is Ownable, ERC721 {
     }
 
     function _burn(uint256 _claimtokenId) internal override {
-        escrowBalances[msg.sender].claimTokenID = 0;
-        super._burn(_claimtokenId);
+        require(balanceOf(msg.sender) == 1, "no claim token");
+        if (escrowBalances[msg.sender].assets.length == 0){
+            escrowBalances[msg.sender].claimTokenID = 0;
+            super._burn(_claimtokenId);
+        }
     }
 
 
