@@ -1,7 +1,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -10,7 +9,6 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 
 contract Escrow is Ownable, ERC721 {
-    using EnumerableSet for EnumerableSet.UintSet;
     using SafeMath for uint256;
     using Counters for Counters.Counter;
 
