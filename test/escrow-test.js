@@ -6,7 +6,7 @@ const timestamp = require("unix-timestamp")
 const ethers = hre.ethers;
 
 let deployer, account1, account2, account3;
-let deployerAddr, account1Addr, account2Addr, account3Addr;
+let account1Addr, account2Addr, account3Addr;
 const fee = ethers.constants.WeiPerEther.div(1000); // 0.001 ETH
 let tokenERC20, tokenERC721, escrow;
 
@@ -15,15 +15,15 @@ function caluclateFee(num){
 }
 
 function buildPayloadERC20(recipient, amount, endTime){
-    return [0, recipient, 0, amount, endTime]
+    return [0, tokenERC20.address, recipient, 0, amount, endTime]
 }
 
 function buildPayloadERC721(recipient, tokenId, endTime){
-    return [1, recipient, tokenId, 0, endTime]
+    return [1, tokenERC721.address, recipient, tokenId, 0, endTime]
 }
 
 function buildInvalidPayloadERC20(recipient, amount, endTime){
-    return [2, recipient, 0, amount, endTime]
+    return [2, tokenERC20.address, recipient, 0, amount, endTime]
 }
 
 async function mintSampleERC20Tokens(owner, amount){

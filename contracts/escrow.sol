@@ -23,6 +23,8 @@ contract Escrow is Ownable, ERC721 {
     struct Asset {
         // AssetType corresponding to the Asset
         AssetType assetType;
+        // address of the token contract
+        address token;
 
         // recipient of the asset
         address recipient;
@@ -49,7 +51,6 @@ contract Escrow is Ownable, ERC721 {
     Counters.Counter private _claimtokenIds;
 
     mapping(address => AssetBalance) private escrowBalances;
-    mapping(AssetType => address) private tokenAddresses;
     
     // fee taken for every escrow deposit
     uint256 private _fee;
@@ -57,9 +58,7 @@ contract Escrow is Ownable, ERC721 {
     // this prevents large loops and unexpected state modification
     uint16 private _max;
 
-    constructor(address erc20, address erc721) ERC721("Claim Token", "CTKN"){
-        tokenAddresses[AssetType.ERC20] = erc20;
-        tokenAddresses[AssetType.ERC721] = erc721;
+    constructor() ERC721("Claim Token", "CTKN"){
         _fee = 0.001 ether;
         _max = 10;
     }
@@ -137,12 +136,12 @@ contract Escrow is Ownable, ERC721 {
                 escrowBalances[asset.recipient].erc20 = escrowBalances[asset.recipient].erc20.add(asset.amount);
                 escrowBalances[asset.recipient].assets.push(asset);
 
-                require(IERC20(tokenAddresses[AssetType.ERC20]).transferFrom(msg.sender, address(this), asset.amount), "token transfer failed");
+                require(IERC20(asset.token).transferFrom(msg.sender, address(this), asset.amount), "token transfer failed");
             } else{
                 escrowBalances[asset.recipient].erc721 = escrowBalances[asset.recipient].erc721.add(1);
                 escrowBalances[asset.recipient].assets.push(asset);
 
-                IERC721(tokenAddresses[AssetType.ERC721]).transferFrom(msg.sender, address(this), asset.tokenId);
+                IERC721(asset.token).transferFrom(msg.sender, address(this), asset.tokenId);
             }
 
             // mint if doesn't exist
@@ -173,10 +172,10 @@ contract Escrow is Ownable, ERC721 {
                 
                 if (asset.assetType == AssetType.ERC20){
                     escrowBalances[msg.sender].erc20 = 0;
-                    require(IERC20(tokenAddresses[AssetType.ERC20]).transfer(msg.sender, asset.amount), "token transfer failed");
+                    require(IERC20(asset.token).transfer(msg.sender, asset.amount), "token transfer failed");
                 } else{
                     escrowBalances[msg.sender].erc721 = escrowBalances[msg.sender].erc721.sub(1);
-                    IERC721(tokenAddresses[AssetType.ERC721]).transferFrom(address(this), msg.sender, asset.tokenId);
+                    IERC721(asset.token).transferFrom(address(this), msg.sender, asset.tokenId);
                 }
                 
                 // swap and pop from the array.

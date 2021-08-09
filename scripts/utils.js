@@ -15,7 +15,7 @@ async function deployContracts() {
     await tokenERC721.deployed();
 
     const c3 = await hre.ethers.getContractFactory("Escrow");
-    escrow = await c3.deploy(tokenERC20.address, tokenERC721.address);
+    escrow = await c3.deploy();
     await escrow.deployed();
 
     return { tokenERC20, tokenERC721, escrow };
