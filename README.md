@@ -1,7 +1,8 @@
 # Escrow
 
-An escrow contract written in solidity which allows users to deposit any ERC20 and/or ERC721 token to the escrow, to be withdrawn by a specified recipient. The depositor can specify an end time which locks the assets till that specified time.  
+An escrow contract written in solidity which allows users to deposit any ERC20 and/or ERC721 token to the escrow, to be withdrawn by a specified recipient. The depositor can specify an end time which locks the assets till that specified time. 
 
+To enable thorough testing, sample ERC20 and ERC721 contracts have been included in the contract folder.
 ## Overview
 
 ### Deposit
