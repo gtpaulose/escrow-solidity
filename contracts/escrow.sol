@@ -45,6 +45,7 @@ contract Escrow is Ownable, ERC721 {
         uint256 erc721;
         Asset[] assets;
 
+        // claimTokenID for all current assets in array
         uint256 claimTokenID;
     }
 
