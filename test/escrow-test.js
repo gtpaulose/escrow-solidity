@@ -106,7 +106,7 @@ describe("Escrow Deposit", async() => {
         expect(erc721Balance).to.equal(0)
     });
     it("Should throw an error when sending insufficient escrow fee", async() => {
-        await expect(escrow.connect(account1).deposit([buildPayloadERC20(account2Addr, 1, 0)])).to.be.revertedWith(revertMessage('insufficient payment to perform transaction'));
+        await expect(escrow.connect(account1).deposit([buildPayloadERC20(account2Addr, 1, 0)])).to.be.revertedWith(revertMessage('incorrect payment to perform transaction'));
     });
     it("Should throw an error when passing an invalid asset type", async() => {
         await expect(escrow.connect(account1).deposit([buildInvalidPayloadERC20(account2Addr, 1, 0)], { value: caluclateFee(1), gasPrice: 0 })).to.be.revertedWith(revertMessage('function was called with incorrect parameters'));
@@ -117,7 +117,7 @@ describe("Escrow Deposit", async() => {
                 payload.push(buildPayloadERC20(account2Addr, 1, 0))
         }
 
-       await expect(escrow.connect(account1).deposit(payload, { value: caluclateFee(11), gasPrice: 0 })).to.be.revertedWith(revertMessage('too many unwithdrawn assets for recipient'));
+       await expect(escrow.connect(account1).deposit(payload, { value: caluclateFee(11), gasPrice: 0 })).to.be.revertedWith(revertMessage('too many unclaimed assets for recipient'));
     });
     it("Should be successful when passing valid erc20 argument and fee", async() => {
         const ethBalanceBefore = await account1.getBalance();
@@ -235,6 +235,27 @@ describe("Escrow Deposit", async() => {
         expect(erc20Balance).to.equal(1)
         expect(erc721Balance).to.equal(1)
     });
+    it("Should throw an error when adding more assets to escrow than the limit", async() => {
+        details = await escrow.connect(account2).getClaimDetails(account2Addr)
+        unclaimed = details[0].toNumber()
+
+        payload =[]
+        for (i = 0; i< 10 - unclaimed; i++){
+                payload.push(buildPayloadERC20(account2Addr, 1, 0));
+        }
+
+        await escrow.connect(account1).deposit(payload, { value: caluclateFee(10 - unclaimed), gasPrice: 0 });
+        
+        balances = await escrow.connect(account2).escrowBalance(account2Addr)
+        erc20Balance = balances[0]
+        erc721Balance = balances[1]
+        expect(erc20Balance).to.equal(11)
+        expect(erc721Balance).to.equal(1)
+
+        await expect(escrow.connect(account1).deposit([
+            buildPayloadERC20(account2Addr, 1, 0)
+        ], { value: caluclateFee(1), gasPrice: 0 })).to.be.revertedWith(revertMessage('too many unclaimed assets for recipient'));
+    });
 });
 
 describe("Escrow Withdrawal", async() => {
@@ -256,7 +277,7 @@ describe("Escrow Withdrawal", async() => {
             buildPayloadERC20(account2Addr, 1, 0)
         ], { value: caluclateFee(2), gasPrice: 0 });
 
-        const c = await escrow.connect(account2).withdraw();
+       await escrow.connect(account2).withdraw();
 
         const claimTokenBalanceAfter = await escrow.connect(account2).balanceOf(account2Addr);
         const token20BalanceAfter = await tokenERC20.connect(account2).balanceOf(account2Addr);
@@ -353,7 +374,8 @@ describe("Escrow Withdrawal", async() => {
         const claimTokenBalanceAfter = await escrow.connect(account2).balanceOf(account2Addr);
         expect(claimTokenBalanceAfter).to.equal(1)
 
-        tokenID = await escrow.connect(account2).getClaimTokenID(account2Addr);
+        details = await escrow.connect(account2).getClaimDetails(account2Addr);
+        tokenID = details[1]
         await escrow.connect(account2).transferFrom(account2Addr, account3Addr, tokenID.toNumber());
 
         await expect(escrow.connect(account2).withdraw()).to.be.revertedWith(revertMessage('no claim token'));

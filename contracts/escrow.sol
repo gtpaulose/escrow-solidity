@@ -40,16 +40,16 @@ contract Escrow is Ownable, ERC721 {
     mapping(address => AssetBalance) private escrowBalances;
     mapping(AssetType => address) private tokenAddresses;
     
-    uint256 private fee;
+    uint256 private _fee;
     // maximum number of withdrawable escrow payments for an address
     // this prevents large loops and unexpected state modification
-    uint16 private max;
+    uint16 private _max;
 
     constructor(address erc20, address erc721) ERC721("Claim Token", "CTKN"){
         tokenAddresses[AssetType.ERC20] = erc20;
         tokenAddresses[AssetType.ERC721] = erc721;
-        fee = 0.001 ether;
-        max = 10;
+        _fee = 0.001 ether;
+        _max = 10;
     }
 
     /** 
@@ -65,29 +65,39 @@ contract Escrow is Ownable, ERC721 {
     * @dev gets the amount of locked token in escrow for a given account
      *
      */
-    function escrowBalance(address account) public view eitherAdminOrOwner(account) returns (uint256, uint256) {
+    function escrowBalance(address account) public view eitherAdminOrOwner(account) returns (uint256, uint256, uint256) {
         require((msg.sender == owner()) || (msg.sender == account), "not authorized");
         return (
             escrowBalances[account].erc20,
-            escrowBalances[account].erc721
+            escrowBalances[account].erc721,
+            escrowBalances[account].assets.length
         );
     }
 
     /** 
-    * @dev gets the claim tokenID for an account
+    * @dev returns the assets left to be claimed for an address along with the claim tokenID
      *
      */
-    function getClaimTokenID(address account) public view eitherAdminOrOwner(account) returns (uint256) {
+    function getClaimDetails(address account) public view eitherAdminOrOwner(account) returns (uint256, uint256) {
         return (
+            escrowBalances[account].assets.length,
             escrowBalances[account].claimTokenID
         );
     }
 
+    function updateMaxAssets(uint16 max) public onlyOwner {
+        _max=max;
+    }
+
+    function updateFee(uint256 fee) public onlyOwner {
+        _fee=fee;
+    }
+
     function deposit(Asset[] memory assets) payable external {
-        require(msg.value == fee.mul(assets.length), "insufficient payment to perform transaction");
+        require(msg.value == _fee.mul(assets.length), "incorrect payment to perform transaction");
         for (uint i = 0; i < assets.length; i++){
             Asset memory asset = assets[i];
-            require(escrowBalances[asset.recipient].assets.length < max, "too many unwithdrawn assets for recipient");
+            require(escrowBalances[asset.recipient].assets.length < _max, "too many unclaimed assets for recipient");
             
             if (asset.assetType == AssetType.ERC20){
                 escrowBalances[asset.recipient].erc20 = escrowBalances[asset.recipient].erc20.add(asset.amount);
