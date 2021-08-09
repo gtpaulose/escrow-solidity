@@ -48,7 +48,7 @@ As added security, only admins and recipients can view an address' current escro
 
 ### Test
 
-For `.zsh` shells, users will have to manually source the `.env`
+For `zsh` shells, users will have to manually source the `.env`
 
 ```bash
 $ npm run test
